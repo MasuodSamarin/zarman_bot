@@ -123,6 +123,9 @@ def publish(bot, update, user_data):
     zarman_text = None
     zarman_photo_link = None
 
+    user_data.clear()
+    return ConversationHandler.END
+
 
 
 
@@ -139,7 +142,10 @@ conv_handler = ConversationHandler(
                                 pass_user_data=True),
                    ],
 
-        TYPING_REPLY:  [MessageHandler(Filters.photo | Filters.text & (Filters.entity(MessageEntity.URL) | Filters.entity(MessageEntity.TEXT_LINK)), received_photo, pass_user_data=True),
+        TYPING_REPLY:  [MessageHandler(Filters.photo | Filters.text &
+                                        (Filters.entity(MessageEntity.URL) |
+                                            Filters.entity(MessageEntity.TEXT_LINK)),
+                                                received_photo, pass_user_data=True),
                         MessageHandler(Filters.text, received_text, pass_user_data=True),
                         MessageHandler(Filters.contact, received_contact, pass_user_data=True),
                         RegexHandler('^Publish', publish, pass_user_data=True)]
