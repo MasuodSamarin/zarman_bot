@@ -7,8 +7,7 @@ from peewee import *
 from peewee import create_model_tables
 
 
-# db = SqliteDatabase('database.db')
-db = SqliteDatabase(':memory:')
+db = SqliteDatabase('database.db')
 
 class BaseModel(Model):
     class Meta:
@@ -18,9 +17,8 @@ class BaseModel(Model):
 class Message(BaseModel):
     text = TextField(default='')
     link = TextField(default='')
-    hashtag = TextField(default='')
-    usr_name = CharField(default='')
-    usr_id = CharField(default='')
+    usr_name = TextField(default='')
+    usr_id = TextField(default='')
     is_pub = BooleanField(default=False)
     p_date = DateField(default=datetime.date.today())
     c_date = DateField(default=datetime.date.today())
