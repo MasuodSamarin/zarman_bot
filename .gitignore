@@ -101,6 +101,7 @@ ENV/
 # add by mass
 share/
 bin/
-lib64
+lib64/
+*.db
 
 
