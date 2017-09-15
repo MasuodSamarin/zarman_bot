@@ -13,11 +13,13 @@ import logging
 import jdatetime
 import locale
 
-
-from db_zarman import *
+from help_msg import *
+from db_handler import *
+# from keyboards import *
 
 #const info
-zarman_channel_id = -1001124038908
+# zarman_channel_id = -1001124038908
+zarman_channel_id = -1001134097906
 zarman_channel_name = "@this_is_my_channel"
 
 zarman_base_text = '{text} <a href="{link}" > &#8207; </a>'
@@ -29,6 +31,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
                     level=logging.INFO)
 
 logger = logging.getLogger(__name__)
+print('__name__:', __name__)
 
 
 # States of the bot
@@ -43,10 +46,11 @@ reply_keyboard = [['Text', 'Photo'],
 
 #TODO esme in variable ha ro grohi avaz kon
 repKey_main = [['/new_message', '/query_message']]
-repKey_newMsg = [['/send_message', '/cancel']]
-repKey_sending = [['/publish', '/put_on_qeue'], ['/cancel']]
-repKey_query = [['/not_publish_messages', '/show_All_messages'], ['/show_from_to_messages', '/cancel']]
-repkey_datetime = [['/enqeue', '/cancel']]
+repKey_newMsg = [['/send_message', '/reset']]
+repKey_sending = [['/publish', '/put_on_qeue'], ['/reset']]
+repKey_query = [['/not_publish_messages', '/show_All_messages'],
+                    ['/show_from_to_messages', '/reset']]
+repkey_datetime = [['/enqeue', '/reset']]
 
 markup_main = ReplyKeyboardMarkup(repKey_main, one_time_keyboard=True)
 markup_newMsg = ReplyKeyboardMarkup(repKey_newMsg, one_time_keyboard=True)
@@ -65,119 +69,163 @@ def error(bot, update, error):
 
 # MAIN state
 def start(bot, update):
-    update.message.reply_text('سلام. من پستچی هستم. اگه ادمین کانال هستی و هر روز پست میزاری پس من میتونم کمکت کنم. همیشه دستور help/ میتونه کمکت کنه.  '
-				' دستور new message برای ساختن پست جدید.'
-				' دستور query message برای دیدن پست های قبلی هستش. (فعلا کار نمیکنه)', reply_markup=markup_main)
+    update.message.reply_text(f_msg_wellcome, reply_markup=markup_main)
     return MAIN
 
 
 def new_message(bot, update, user_data):
     '''MAIN State handler function'''
-    update.message.reply_text(' lotfan, text va link ro baraye man ersal kon '
-				' baraye ersal post klid /send '
-                                ' baraye Preview post klid /Preview'
-                                ' va baraye cancel kardan majara klid cansel o bezanid'
-                                ' age eshtebah kardi 2bare befrest text jadid  '
-                                ' replace  mishe', reply_markup=markup_newMsg)
+    update.message.reply_text(f_msg_start, reply_markup=markup_newMsg)
     return NEW_MSG
 
 def query_message(bot, update, user_data):
     '''MAIN State handler function'''
-    update.message.reply_text(' hanus kar nmikone lotfan /cancel o bezan ', reply_markup=markup_query)
+    update.message.reply_text(' hanus kar nmikone lotfan /reset o bezan ',
+            reply_markup=markup_query)
     return QUERY
 
 def parse_message_handler(bot, update, user_data):
 
-    entities = update.message.parse_entities(types=telegram.MessageEntity.ALL_TYPES)
+    entities = update.message.parse_entities(
+            types=telegram.MessageEntity.ALL_TYPES)
     text = update.message.text
+    hashtag = list()
+    link = ''
 
     for k, v in entities.items():
-        if k.type == 'text_link':
-            user_data['link'] = str(k.url)
-        elif k.type == 'url':
-            user_data['link'] = str(v)
+        if k.type == telegram.MessageEntity.TEXT_LINK:
+            link = str(k.url).strip()
 
-        a = int(k.offset)
+        elif k.type == telegram.MessageEntity.URL:
+            link = str(v).strip()
+
+        elif k.type == telegram.MessageEntity.HASHTAG:
+            hashtag.append(str(v).strip())
+
+
+        a = text.find(str(v).strip())
         b = a + int(k.length)
-        text = text.replace(text[a:b], '')
+        text = text.replace(text[a: b], '')
 
-    if not user_data.get('text', None):
+    if not user_data.get('text'):
+        user_data['text'] = ''
         user_data['text'] = text.strip()
+    if not user_data.get('hashtag'):
+        user_data['hashtag'] =''
+        user_data['hashtag'] = (' '.join(hashtag)).strip()
+    if not user_data.get('link'):
+        user_data['link'] = ''
+        user_data['link'] = link.strip()
 
-    update.message.reply_text(user_data['text'])
+    if user_data.get('text'):
+        update.message.reply_text(f_msg_get_text , reply_markup=markup_newMsg)
 
     if user_data.get('link'):
-        update.message.reply_text(user_data['link'])
+        update.message.reply_text(f_msg_get_link , reply_markup=markup_newMsg)
 
-    update.message.reply_text('text e o gereftam va save kardm'
-                                'age fekr mikoni eshtebah kardi 2bare befrest'
-                                'to post badi baratb mifrestam '
-                                'age doroste linko bede', reply_markup=markup_newMsg)
-#     update.message.reply_text(user_data['text'])
-#     update.message.reply_text('hala mituni link o befresti baram')
-    if user_data.get('link', None):
-        user_data['pocket'] = '{}\n <a href="{}" > &#8207; </a>'.format(
-                user_data['text'], user_data['link'])
-    else:
-        user_data['pocket'] = user_data['text']
+    if user_data.get('hashtag'):
+        update.message.reply_text(f_msg_get_hashtg , reply_markup=markup_newMsg)
 
-    update.message.reply_text(text=user_data['pocket'], parse_mode=telegram.ParseMode.HTML)
+    if user_data.get('text'):
+        text = '\n{}\n'.format(user_data.get('text'))
+        user_data['pocket'] = text
+
+    if user_data.get('link'):
+        link = '\n<a href="{}" > &#8207; </a>\n'.format(user_data.get('link'))
+        user_data['pocket'] += link
+
+    if user_data.get('hashtag'):
+        hashtag = '\n{}\n'.format(user_data.get('hashtag'))
+        user_data['pocket'] += hashtag
+
+        user_data['pocket'] += '<a> &#8207;</a>\n<a> &#8207;</a>\n<a> &#8207;</a>\n'
+
+#     update.message.reply_text(text=user_data['pocket'] + '\n\n',
+#             parse_mode=telegram.ParseMode.HTML)
 
     return NEW_MSG
 
 
+def _make_post(user_data):
+    pass
 
 #NEW_MSG State
 def send_message_handler(bot, update, user_data):
     '''NEW_MSG State handler function'''
-    if not user_data.get('text', None):
+    if not user_data.get('text'):
         update.message.reply_text('**hanuz text onaferestadi !!!***',
-                                    reply_markup = markup_newMsg)
+                reply_markup = markup_newMsg)
         return NEW_MSG
     else:
 
         update.message.reply_text('poste morede nazar o barat mifrestam '
-                                    'bebin khube ya na'
-                                    'age mikhay haminalan post she /sendnow ro bezan'
-                                    'age mikhay set time koni /enqeue bezan'
-                                    'age ham narahti /canselo bezan',
-                                    reply_markup=markup_sending)
+                'bebin khube ya na age mikhay haminalan post she /sendnow'
+                ' ro bezan age mikhay set time koni /enqeue bezan age ham'
+                ' narahti /canselo bezan', reply_markup=markup_sending)
+    if user_data.get('text'):
+        text = '\n{}\n'.format(user_data.get('text'))
+        user_data['pocket'] = text
 
-    if user_data.get('link', None):
-        user_data['pocket'] = '{}\n <a href="{}" > &#8207; </a>'.format(
-                user_data['text'], user_data['link'])
+    if user_data.get('link'):
+        link = '\n<a href="{}" > &#8207; </a>\n'.format(user_data.get('link'))
+        user_data['pocket'] += link
+
+    if user_data.get('hashtag'):
+        hashtag = '\n{}\n'.format(user_data.get('hashtag'))
+        user_data['pocket'] += hashtag
+
+
+    update.message.reply_text(text=user_data['pocket'] + '\n\n',
+            parse_mode=telegram.ParseMode.HTML)
+
+
+    if user_data.get('link'):
+        user_data['pocket'] = '\n{0}\n<a href="{2}" > &#8207; </a>\n{1}'.format(
+                user_data.get('text'), user_data.get('hashtag'),
+                user_data.get('link'))
+
+    elif user_data.get('hashtag'):
+        user_data['pocket'] = '\n{}\n{}\n'.format(user_data.get('text'),
+                user_data.get('hashtag'))
+
+    elif user_data.get('text'):
+        user_data['pocket'] = '\n{}\n'.format(user_data.get('text'))
+
     else:
-        user_data['pocket'] = user_data['text']
+        user_data['pocket'] = '\n'
 
-    update.message.reply_text(text=user_data['pocket'], parse_mode=telegram.ParseMode.HTML)
+    update.message.reply_text(text=user_data['pocket'] + '\n\n\t\t\t',
+            parse_mode=telegram.ParseMode.HTML)
 
     return SENDING
 
 
 def done(bot, update, user_data):
     '''NEW_MSG State handler function'''
-    update.message.reply_text(' hamechiz reset shod.  baraye shoro 2bare /start obezan')
+    update.message.reply_text(' hamechiz reset shod.  baraye shoro 2bare'
+            ' /start obezan')
 
 
 
 
-def cancel(bot, update, user_data):
+def reset(bot, update, user_data):
     '''NEW_MSG State handler function'''
-    update.message.reply_text(' hamechiz reset shod.  baraye shoro 2bare /start obezan')
+    update.message.reply_text(' hamechiz reset shod.  baraye shoro 2bare'
+           ' /start obezan')
 
     user_data.clear()
     return ConversationHandler.END
 
 def Preview(bot, update, user_data):
     '''NEW_MSG State handler function'''
-    update.message.reply_text('cancel ', reply_markup=markup_main)
+    update.message.reply_text('reset ', reply_markup=markup_main)
     return MAIN
 
 
 def publish(bot, update, user_data):
     '''SENDING State handler function'''
-    update.message.reply_text('post o barat ersalmikonam '
-                                'be chanal zarman agemikhay 2bare post befresti /start kon')
+    update.message.reply_text('post o barat ersalmikonam be chanal zarman'
+            ' agemikhay 2bare post befresti /start kon')
     bot.send_message(chat_id=zarman_channel_id, text=user_data['pocket'],
                         parse_mode=telegram.ParseMode.HTML)
     user_data.clear()
@@ -187,11 +235,9 @@ def publish(bot, update, user_data):
 def put_on_qeue(bot, update, user_data):
     '''SENDING State handler function'''
     now = jdatetime.date.today().strftime("%a, %d %b %Y")
-    update.message.reply_text('date time now is:\n{}\n'
-                               ' date time kemikhay ro benevis '
-                               'format qabele gabul:-->'
-                               '\nYY MM DD'
-                               '\n96 06 02 '.format(now), reply_markup=markup_date_time)
+    update.message.reply_text('date time now is:\n{}\n date time kemikhay'
+            ' ro benevis format qabele gabul:-->\nYY MM DD\n96 06 02 '.format(
+                now), reply_markup=markup_date_time)
     return DATE_TIME
 
 
@@ -230,14 +276,16 @@ def received_datetime_handler(bot, update, user_data):
 
     delta = p_date - now
     if delta.days < 0:
-        update.message.reply_text('time ke zadi gabl az emruze va gabul nist 2bare emtehan kon\n'
-                                    '\n{}\n'.format(strftime))
+        update.message.reply_text('time ke zadi gabl az emruze va gabul '
+                'nist 2bare emtehan kon\n\n{}\n'.format(strftime))
         return DATE_TIME
 
     user_data['p_date'] = p_date
     user_data['p_date_str'] = strftime
-    update.message.reply_text('baraye sabt post /enqeue obezan ta {} pose mishe'.format(strftime))
-    update.message.reply_text(text=user_data['pocket'], parse_mode=telegram.ParseMode.HTML)
+    update.message.reply_text('baraye sabt post /enqeue obezan ta '
+            '{} pose mishe'.format(strftime))
+    update.message.reply_text(text=user_data['pocket'],
+            parse_mode=telegram.ParseMode.HTML)
 
     return DATE_TIME
 
@@ -251,9 +299,10 @@ def enqeue(bot, update, user_data):
     user_data['link'] =user_data['link'].encode()
     user_data['usr_name'] = update.message.chat.username.encode()
     user_data['usr_id'] = str(update.message.chat.id).encode()
-    user_data['g_date'] = user_data['p_date'].togregorian()
-    m = Message()
-    m.add_entry(user_data)
+    user_data['g_date'] = user_data.get('p_date', None).togregorian()
+    # database instance
+    p = Post()
+    p.add_entry(user_data)
 
     for k, v in user_data.items():
         update.message.reply_text('{}-->{}'.format(k, v))
@@ -266,19 +315,22 @@ def enqeue(bot, update, user_data):
 
 def not_publish_messages(bot, update, user_data):
     '''QUERY State handler function'''
-    update.message.reply_text('not_publish_messages query_message ', reply_markup=markup_main)
+    update.message.reply_text('not_publish_messages query_message ',
+            reply_markup=markup_main)
     return MAIN
 
 
 def show_from_to_messages(bot, update, user_data):
     '''QUERY State handler function'''
-    update.message.reply_text('from to query_message ', reply_markup=markup_main)
+    update.message.reply_text('from to query_message ',
+            reply_markup=markup_main)
     return MAIN
 
 
 def show_All_messages(bot, update, user_data):
     '''QUERY State handler function'''
-    update.message.reply_text('show_All_messages message query_message ', reply_markup=markup_main)
+    update.message.reply_text('show_All_messages message query_message ',
+            reply_markup=markup_main)
     return MAIN
 
 
@@ -291,27 +343,33 @@ conv_handler = ConversationHandler(
 
     states={
         MAIN: [CommandHandler('new_message', new_message, pass_user_data=True),
-                CommandHandler('query_message', query_message, pass_user_data=True)],
+                CommandHandler('reset', reset, pass_user_data=True),
+                CommandHandler('query_message',
+                        query_message, pass_user_data=True),
+                CommandHandler('start', start)],
 
-        NEW_MSG: [CommandHandler('send_message', send_message_handler, pass_user_data=True),
-                CommandHandler('cancel', cancel, pass_user_data=True),
-#                 MessageHandler(Filters.text &
-#                                         (Filters.entity(MessageEntity.URL) |
-#                                             Filters.entity(MessageEntity.TEXT_LINK)),
-#                                                 received_link_handler, pass_user_data=True),
-                MessageHandler(Filters.text, parse_message_handler, pass_user_data=True)],
+        NEW_MSG: [CommandHandler('send_message',
+                        send_message_handler, pass_user_data=True),
+                CommandHandler('reset', reset, pass_user_data=True),
+                MessageHandler(Filters.text,
+                        parse_message_handler, pass_user_data=True)],
 
         SENDING: [CommandHandler('publish', publish, pass_user_data=True),
+                CommandHandler('reset', reset, pass_user_data=True),
                 CommandHandler('put_on_qeue', put_on_qeue, pass_user_data=True)],
 
-        QUERY: [CommandHandler('not_publish_messages', not_publish_messages, pass_user_data=True),
-                CommandHandler('show_from_to_messages', show_from_to_messages, pass_user_data=True),
-                CommandHandler('show_All_messages', show_All_messages, pass_user_data=True),
-                CommandHandler('cancel', cancel, pass_user_data=True)],
+        QUERY: [CommandHandler('not_publish_messages', not_publish_messages,
+                        pass_user_data=True),
+                CommandHandler('show_from_to_messages', show_from_to_messages,
+                        pass_user_data=True),
+                CommandHandler('show_All_messages', show_All_messages,
+                        pass_user_data=True),
+                CommandHandler('reset', reset, pass_user_data=True)],
 
         DATE_TIME: [CommandHandler('enqeue', enqeue, pass_user_data=True),
-                    CommandHandler('cancel', cancel, pass_user_data=True),
-                    MessageHandler(Filters.text, received_datetime_handler, pass_user_data=True)],
+                    CommandHandler('reset', reset, pass_user_data=True),
+                    MessageHandler(Filters.text, received_datetime_handler,
+                        pass_user_data=True)],
 
 
 
@@ -334,7 +392,8 @@ locale.setlocale(locale.LC_ALL, "fa_IR")
 connect_to_db()
 
 # Create the EventHandler and pass it your bot's token.
-TOKEN = "401217227:AAFWcAQ_lC33X9hwgnL3lYp2CdItJwhlD0o"
+# TOKEN = "401217227:AAFWcAQ_lC33X9hwgnL3lYp2CdItJwhlD0o"
+TOKEN = "424031953:AAGJ2F1Q3xHWlkE5jQNEFTQFkRVKGWcUqMg"
 updater = Updater(TOKEN)
 
 # Get the dispatcher to register handlers

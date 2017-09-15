@@ -7,15 +7,15 @@ from peewee import *
 from peewee import create_model_tables
 
 
-# db = SqliteDatabase('database.db')
-db = SqliteDatabase(':memory:')
+db = SqliteDatabase('database.db')
+# db = SqliteDatabase(':memory:')
 
 class BaseModel(Model):
     class Meta:
         database = db
 
 
-class Message(BaseModel):
+class Post(BaseModel):
     text = TextField(default='')
     link = TextField(default='')
     hashtag = TextField(default='')
@@ -29,22 +29,27 @@ class Message(BaseModel):
         default = ''
         text = user_data.get('text', default)
         link = user_data.get('link', default)
+        hashtag = user_data.get('hashtag', default)
         usr_name = user_data.get('usr_name', default)
         usr_id = user_data.get('usr_id', default)
         p_date = user_data.get('g_date', datetime.date.today())
 
-        m = Message(text=text, link=link, usr_name=usr_name,
-                        usr_id=usr_id, p_date=p_date)
+        m = Post(text=text, link=link, hashtag=hashtag, usr_name=usr_name,
+                usr_id=usr_id, p_date=p_date)
         m.save()
 
     def post_query(self, date=datetime.date.today(), is_pub=False):
+        entries = Post.select(Post.text, Post.link,
+                Post.hashtag).where((Post.p_date==date) &
+                        (Post.is_pub == is_pub))
+        return entries.execute()
 
-        entries = Message.select().where(
-                (Message.p_date==date) & (Message.is_pub == is_pub)).execute()
-        return entries
-
+    def update_db(self):
+        today = datetime.today()
+        query = self.update(is_published=True).where(Tweet.creation_date < today)
+        return query.execute()  # Returns the number of rows that were updated.
 
 def connect_to_db():
     db.connect()
-    db.create_tables([Message], True)
+    db.create_tables([Post], True)
 
