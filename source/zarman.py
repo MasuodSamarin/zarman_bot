@@ -18,8 +18,8 @@ from db_handler import *
 # from keyboards import *
 
 #const info
-# zarman_channel_id = -1001124038908
-zarman_channel_id = -1001134097906
+zarman_channel_id = -1001124038908
+# zarman_channel_id = -1001134097906
 zarman_channel_name = "@this_is_my_channel"
 
 zarman_base_text = '{text} <a href="{link}" > &#8207; </a>'
@@ -392,8 +392,8 @@ locale.setlocale(locale.LC_ALL, "fa_IR")
 connect_to_db()
 
 # Create the EventHandler and pass it your bot's token.
-# TOKEN = "401217227:AAFWcAQ_lC33X9hwgnL3lYp2CdItJwhlD0o"
-TOKEN = "424031953:AAGJ2F1Q3xHWlkE5jQNEFTQFkRVKGWcUqMg"
+TOKEN = "401217227:AAFWcAQ_lC33X9hwgnL3lYp2CdItJwhlD0o"
+# TOKEN = "424031953:AAGJ2F1Q3xHWlkE5jQNEFTQFkRVKGWcUqMg"
 updater = Updater(TOKEN)
 
 # Get the dispatcher to register handlers
