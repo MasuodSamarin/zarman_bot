@@ -107,9 +107,22 @@ def parse_message_handler(bot, update, user_data):
         b = a + int(k.length)
         text = text.replace(text[a: b], '')
 
+
+    text_spl = text.splitlines()
+    text_final = list()
+    for l in text_spl:
+        if len(l)>0 and l[0] != '*':
+            wt = '\t\t\t\t\t\t{}'.format(l)
+            text_final.append(wt)
+        else:
+            text_final.append(l)
+    text = '\n'.join(text_final)
+
+
+
     if not user_data.get('text'):
         user_data['text'] = ''
-        user_data['text'] = text.strip()
+        user_data['text'] = text
     if not user_data.get('hashtag'):
         user_data['hashtag'] =''
         user_data['hashtag'] = (' '.join(hashtag)).strip()
@@ -138,7 +151,12 @@ def parse_message_handler(bot, update, user_data):
         hashtag = '\n{}\n'.format(user_data.get('hashtag'))
         user_data['pocket'] += hashtag
 
-        user_data['pocket'] += '<a> &#8207;</a>\n<a> &#8207;</a>\n<a> &#8207;</a>\n'
+        user_data['pocket'] = text
+
+    not_print_line = '\n<a> &#8207; </a>\n'*3
+    text = '{0}{1}{2}'.format(not_print_line, user_data['pocket'], not_print_line)
+
+    user_data['pocket'] = text
 
 #     update.message.reply_text(text=user_data['pocket'] + '\n\n',
 #             parse_mode=telegram.ParseMode.HTML)
@@ -295,11 +313,11 @@ def enqeue(bot, update, user_data):
     #job queue betune uno har ruz run kone
     update.message.reply_text('add to quee ')
 
-    user_data['text'] = user_data['text'].encode()
-    user_data['link'] =user_data['link'].encode()
-    user_data['usr_name'] = update.message.chat.username.encode()
-    user_data['usr_id'] = str(update.message.chat.id).encode()
-    user_data['g_date'] = user_data.get('p_date', None).togregorian()
+    user_data['text'] = str(user_data['text'])
+    user_data['link'] = str(user_data['link'])
+    user_data['usr_name'] = str(update.message.chat.username)
+    user_data['usr_id'] = str(update.message.chat.id)
+    user_data['g_date'] = user_data.get('p_date').togregorian()
     # database instance
     p = Post()
     p.add_entry(user_data)
