@@ -267,6 +267,8 @@ def received_datetime_handler(bot, update, user_data):
     year = now.year
     month = now.month
     day = now.day
+#     if len(dt_list) == 1:
+#         hour =
 
     if len(dt_list) == 1:
         day = int(dt_list[0])
@@ -304,6 +306,10 @@ def enqeue(bot, update, user_data):
     '''DATE_TIME State handler function'''
     #TODO bayad tu data base save konam va ye func handler ham benvisam ta
     #job queue betune uno har ruz run kone
+    if not user_data.get('p_date_str'):
+        update.message.reply_text('date to nadaram babE',
+                reply_markup=markup_date_time)
+        return DATE_TIME
     update.message.reply_text('add to quee ')
 
     user_data['text'] = str(user_data['text'])

@@ -38,7 +38,7 @@ class Post(BaseModel):
                 usr_id=usr_id, p_date=p_date)
         m.save()
 
-    def today_job(self, date=datetime.date.today(), is_pub=False):
+    def post_query(self, date=datetime.date.today(), is_pub=False):
         entries = Post.select(Post.text, Post.link,
                 Post.hashtag).where((Post.p_date==date) &
                         (Post.is_pub == is_pub))
