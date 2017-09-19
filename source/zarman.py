@@ -6,12 +6,13 @@ import sys
 from telegram import ReplyKeyboardMarkup, MessageEntity, InlineKeyboardMarkup
 from telegram.ext import (Updater, CommandHandler,
                             MessageHandler, Filters,
-                            RegexHandler,ConversationHandler)
+                            RegexHandler,ConversationHandler, Job)
 import telegram
 
 import logging
 import jdatetime
 import locale
+import time
 
 from help_msg import *
 from db_handler import *
@@ -84,20 +85,47 @@ def query_message(bot, update, user_data):
             reply_markup=markup_query)
     return QUERY
 
+def make_post(user_data):
+
+    not_print_line = '\n<a> &#8207; </a>\n'*2
+    if user_data.get('text'):
+        text = '\n{0}\n{1}\n'.format(not_print_line, user_data.get('text'))
+        user_data['pocket'] = text
+
+    if user_data.get('link'):
+        link = '\n<a href="{0}" > &#8207; </a>\n'.format(user_data.get('link'))
+        user_data['pocket'] += link
+
+    if user_data.get('hashtag'):
+        hashtag = '\n{}\n'.format(user_data.get('hashtag'))
+        user_data['pocket'] += hashtag
+        user_data['pocket'] = text
+
+    mention = '<a href="tg://user?id=-1001124038908">@zarmanchannel</a>'
+
+    text = '{0}{1}{2}{0}'.format(not_print_line, user_data['pocket'],
+            mention)
+
+    return text
+
+
 def parse_message_handler(bot, update, user_data):
 
+    not_print_line = '\n<a> &#8207; </a>\n'
     entities = update.message.parse_entities(
             types=telegram.MessageEntity.ALL_TYPES)
     text = update.message.text
     hashtag = list()
-    link = ''
+    link = list()
+    if not user_data.get('pocket'):
+        user_data['pocket'] = ''
 
     for k, v in entities.items():
         if k.type == telegram.MessageEntity.TEXT_LINK:
-            link = str(k.url).strip()
+            link.append(str(k.url).strip())
 
         elif k.type == telegram.MessageEntity.URL:
-            link = str(v).strip()
+            link.append(str(v).strip())
 
         elif k.type == telegram.MessageEntity.HASHTAG:
             hashtag.append(str(v).strip())
@@ -107,70 +135,48 @@ def parse_message_handler(bot, update, user_data):
         b = a + int(k.length)
         text = text.replace(text[a: b], '')
 
+    if len(text)>0:
+        text_spl = text.splitlines()
+        text_final = list()
+        for l in text_spl:
+            if len(l)>0 and l[0] != '-':
+                wt = ('{0}{1}').format('\t'*10, l)
+                text_final.append(wt)
+            else:
+                wt = l[1:]
+                text_final.append(wt)
+#                 text_final.remove('*')
+        text = '\n'.join(text_final)
 
-    text_spl = text.splitlines()
-    text_final = list()
-    for l in text_spl:
-        if len(l)>0 and l[0] != '*':
-            wt = '\t\t\t\t\t\t{}'.format(l)
-            text_final.append(wt)
-        else:
-            text_final.append(l)
-    text = '\n'.join(text_final)
-
-
-
-    if not user_data.get('text'):
-        user_data['text'] = ''
-        user_data['text'] = text
-    if not user_data.get('hashtag'):
-        user_data['hashtag'] =''
-        user_data['hashtag'] = (' '.join(hashtag)).strip()
-    if not user_data.get('link'):
-        user_data['link'] = ''
-        user_data['link'] = link.strip()
+    user_data['text'] = text
+    user_data['link'] = link
+    user_data['hashtag'] = hashtag
 
     if user_data.get('text'):
+        text = '{0}'.format(text)
+        user_data['pocket'] += text
         update.message.reply_text(f_msg_get_text , reply_markup=markup_newMsg)
 
     if user_data.get('link'):
+        for l in link:
+            p = '<a href="{0}" > &#8207; </a>'.format(l)
+            user_data['pocket'] += p
         update.message.reply_text(f_msg_get_link , reply_markup=markup_newMsg)
 
     if user_data.get('hashtag'):
+        hashtg = '\n{0}\n'.format((' '.join(hashtag)).strip())
+        user_data['pocket'] += hashtg
         update.message.reply_text(f_msg_get_hashtg , reply_markup=markup_newMsg)
 
-    if user_data.get('text'):
-        text = '\n{}\n'.format(user_data.get('text'))
-        user_data['pocket'] = text
 
-    if user_data.get('link'):
-        link = '\n<a href="{}" > &#8207; </a>\n'.format(user_data.get('link'))
-        user_data['pocket'] += link
-
-    if user_data.get('hashtag'):
-        hashtag = '\n{}\n'.format(user_data.get('hashtag'))
-        user_data['pocket'] += hashtag
-
-        user_data['pocket'] = text
-
-    not_print_line = '\n<a> &#8207; </a>\n'*3
-    text = '{0}{1}{2}'.format(not_print_line, user_data['pocket'], not_print_line)
-
-    user_data['pocket'] = text
-
-#     update.message.reply_text(text=user_data['pocket'] + '\n\n',
-#             parse_mode=telegram.ParseMode.HTML)
-
+#     logger.warn('pocket' % user_data['pocket'])
     return NEW_MSG
 
-
-def _make_post(user_data):
-    pass
 
 #NEW_MSG State
 def send_message_handler(bot, update, user_data):
     '''NEW_MSG State handler function'''
-    if not user_data.get('text'):
+    if not user_data.get('pocket'):
         update.message.reply_text('**hanuz text onaferestadi !!!***',
                 reply_markup = markup_newMsg)
         return NEW_MSG
@@ -180,42 +186,29 @@ def send_message_handler(bot, update, user_data):
                 'bebin khube ya na age mikhay haminalan post she /sendnow'
                 ' ro bezan age mikhay set time koni /enqeue bezan age ham'
                 ' narahti /canselo bezan', reply_markup=markup_sending)
-    if user_data.get('text'):
-        text = '\n{}\n'.format(user_data.get('text'))
-        user_data['pocket'] = text
 
-    if user_data.get('link'):
-        link = '\n<a href="{}" > &#8207; </a>\n'.format(user_data.get('link'))
-        user_data['pocket'] += link
+    mention = '<a href="tg://user?id=-1001124038908">@zarmanchannel</a>'
+    not_print_line = '\n<a> &#8207; </a>\n'
 
-    if user_data.get('hashtag'):
-        hashtag = '\n{}\n'.format(user_data.get('hashtag'))
-        user_data['pocket'] += hashtag
+    user_data['pocket'] = '{2}{0}\n{1}'.format(user_data['pocket'], mention,
+            not_print_line)
 
-
-    update.message.reply_text(text=user_data['pocket'] + '\n\n',
-            parse_mode=telegram.ParseMode.HTML)
-
-
-    if user_data.get('link'):
-        user_data['pocket'] = '\n{0}\n<a href="{2}" > &#8207; </a>\n{1}'.format(
-                user_data.get('text'), user_data.get('hashtag'),
-                user_data.get('link'))
-
-    elif user_data.get('hashtag'):
-        user_data['pocket'] = '\n{}\n{}\n'.format(user_data.get('text'),
-                user_data.get('hashtag'))
-
-    elif user_data.get('text'):
-        user_data['pocket'] = '\n{}\n'.format(user_data.get('text'))
-
-    else:
-        user_data['pocket'] = '\n'
-
-    update.message.reply_text(text=user_data['pocket'] + '\n\n\t\t\t',
+    update.message.reply_text(text=user_data['pocket'],
             parse_mode=telegram.ParseMode.HTML)
 
     return SENDING
+
+def send_today_post(bot, job):
+    pocket = None
+    p = Post()
+    jobs = p.today_job()
+    not_print_line = '\n<a> &#8207; </a>\n'
+    for job in jobs:
+        pocket = '\n{0}\n{1}\n<a href=\"{2}\" > &#8207; </a>\n{3}\n{4}\n'.format(
+                not_print_line, job.text, job.link, job.hashtag, not_print_line)
+        bot.send_message(chat_id=zarman_channel_id , text=pocket,
+                parse_mode=telegram.ParseMode.HTML)
+        time.sleep(10)
 
 
 def done(bot, update, user_data):
@@ -329,8 +322,6 @@ def enqeue(bot, update, user_data):
     return ConversationHandler.END
 
 
-
-
 def not_publish_messages(bot, update, user_data):
     '''QUERY State handler function'''
     update.message.reply_text('not_publish_messages query_message ',
@@ -414,6 +405,8 @@ TOKEN = "401217227:AAFWcAQ_lC33X9hwgnL3lYp2CdItJwhlD0o"
 # TOKEN = "424031953:AAGJ2F1Q3xHWlkE5jQNEFTQFkRVKGWcUqMg"
 updater = Updater(TOKEN)
 
+# Get the job_queue
+updater.job_queue.run_daily(callback=send_today_post, time=datetime.time(21, 10))
 # Get the dispatcher to register handlers
 dp = updater.dispatcher
 
