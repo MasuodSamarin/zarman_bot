@@ -18,10 +18,23 @@ from help_msg import *
 from db_handler import *
 # from keyboards import *
 
+'''
+select bot and channel
+if zarman is True the bot uses orginal zarman Channel and bot
+else for Debug
+'''
+ZARMAN = False
+if not ZARMAN:
+    zarman_channel_id = -1001124038908
+    zarman_channel_name = "@this_is_my_channel"
+    # Create the EventHandler and pass it your bot's token.
+    TOKEN = "401217227:AAFWcAQ_lC33X9hwgnL3lYp2CdItJwhlD0o"
+else:
+    zarman_channel_id = -1001134097906
+    zarman_channel_name = "@zarmanchannel"
+    # Create the EventHandler and pass it your bot's token.
+    TOKEN = "424031953:AAGJ2F1Q3xHWlkE5jQNEFTQFkRVKGWcUqMg"
 #const info
-zarman_channel_id = -1001124038908
-# zarman_channel_id = -1001134097906
-zarman_channel_name = "@this_is_my_channel"
 
 zarman_base_text = '{text} <a href="{link}" > &#8207; </a>'
 
@@ -427,10 +440,6 @@ for debugging purpose arrange like this
 locale.setlocale(locale.LC_ALL, "fa_IR")
 #init database
 connect_to_db()
-
-# Create the EventHandler and pass it your bot's token.
-TOKEN = "401217227:AAFWcAQ_lC33X9hwgnL3lYp2CdItJwhlD0o"
-# TOKEN = "424031953:AAGJ2F1Q3xHWlkE5jQNEFTQFkRVKGWcUqMg"
 updater = Updater(TOKEN)
 
 # Get the job_queue
