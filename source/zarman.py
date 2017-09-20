@@ -57,7 +57,7 @@ markup_main = ReplyKeyboardMarkup(repKey_main, one_time_keyboard=True)
 markup_newMsg = ReplyKeyboardMarkup(repKey_newMsg, one_time_keyboard=True)
 markup_sending = ReplyKeyboardMarkup(repKey_sending, one_time_keyboard=True)
 markup_query = ReplyKeyboardMarkup(repKey_query, one_time_keyboard=True)
-markup_date_time = ReplyKeyboardMarkup(repkey_datetime, one_time_keyboard=True)
+markup_datetime = ReplyKeyboardMarkup(repkey_datetime, one_time_keyboard=True)
 
 
 
@@ -201,14 +201,24 @@ def send_message_handler(bot, update, user_data):
 def send_today_post(bot, job):
     pocket = None
     p = Post()
-    jobs = p.today_job()
-    not_print_line = '\n<a> &#8207; </a>\n'
+    jobs = p.post_query(now=datetime.datetime.now())
+
+#     bot.send_message(chat_id=zarman_channel_id, text='send_today_post')
+
+
+
     for job in jobs:
-        pocket = '\n{0}\n{1}\n<a href=\"{2}\" > &#8207; </a>\n{3}\n{4}\n'.format(
-                not_print_line, job.text, job.link, job.hashtag, not_print_line)
-        bot.send_message(chat_id=zarman_channel_id , text=pocket,
+
+        j = '{0}'.format(job.pocket)
+
+        bot.send_message(chat_id=zarman_channel_id, text=j,
                 parse_mode=telegram.ParseMode.HTML)
+
+
+        p.update_db(id_=job.id)
+
         time.sleep(10)
+
 
 
 def done(bot, update, user_data):
@@ -245,56 +255,68 @@ def publish(bot, update, user_data):
 
 def put_on_qeue(bot, update, user_data):
     '''SENDING State handler function'''
-    now = jdatetime.date.today().strftime("%a, %d %b %Y")
+    now = jdatetime.date.today().strftime("%a, %d %b %Y %H:%M:%S")
     update.message.reply_text('date time now is:\n{}\n date time kemikhay'
             ' ro benevis format qabele gabul:-->\nYY MM DD\n96 06 02 '.format(
-                now), reply_markup=markup_date_time)
+                now), reply_markup=markup_datetime)
     return DATE_TIME
 
 
 
 def received_datetime_handler(bot, update, user_data):
     '''DATE_TIME State handler function'''
-    user_data['p_date'] = update.message.text
-    now = jdatetime.date.today()
+    user_data['p_datetime'] = update.message.text
+    now = jdatetime.datetime.now()
 
-    if not user_data['p_date'].replace(' ','').isdigit():
+    if not user_data['p_datetime'].replace(' ','').isdigit():
         update.message.reply_text('lotfan add bede mesle nmune ke dadm')
         return DATE_TIME
 
-    dt_list = user_data['p_date'].split()
+    dt_list = user_data['p_datetime'].split()
 
     year = now.year
     month = now.month
     day = now.day
-#     if len(dt_list) == 1:
-#         hour =
+    hour = now.hour
+    minute = now.minute
 
     if len(dt_list) == 1:
-        day = int(dt_list[0])
+        minute = int(dt_list[0])
     elif len(dt_list) == 2:
+        hour = int(dt_list[0])
+        minute = int(dt_list[1])
+    elif len(dt_list) == 3:
+        day = int(dt_list[0])
+        hour = int(dt_list[1])
+        minute = int(dt_list[2])
+    elif len(dt_list) == 4:
         month = int(dt_list[0])
         day = int(dt_list[1])
-    elif len(dt_list) == 3:
+        hour = int(dt_list[2])
+        minute = int(dt_list[3])
+    elif len(dt_list) == 5:
         year = int(dt_list[0])
         month = int(dt_list[1])
         day = int(dt_list[2])
+        hour = int(dt_list[3])
+        minute = int(dt_list[4])
     else:
-        update.message.reply_text('lotfan 1 ta 3 add bedid')
+        update.message.reply_text('lotfan 1 ta 5 add bedid')
         return DATE_TIME
 
-    p_date = jdatetime.date(year=year, month=month, day=day)
-    strftime = p_date.strftime("%a, %d %b %Y")
+    p_datetime = jdatetime.datetime(year=year, month=month, day=day,
+            hour=hour, minute=minute)
+    strftime = p_datetime.strftime("%a, %d %b %Y %H:%M:%S")
 
 
-    delta = p_date - now
+    delta = p_datetime - now
     if delta.days < 0:
         update.message.reply_text('time ke zadi gabl az emruze va gabul '
                 'nist 2bare emtehan kon\n\n{}\n'.format(strftime))
         return DATE_TIME
 
-    user_data['p_date'] = p_date
-    user_data['p_date_str'] = strftime
+    user_data['p_datetime'] = p_datetime
+    user_data['p_datetime_str'] = strftime
     update.message.reply_text('baraye sabt post /enqeue obezan ta '
             '{} pose mishe'.format(strftime))
     update.message.reply_text(text=user_data['pocket'],
@@ -306,9 +328,9 @@ def enqeue(bot, update, user_data):
     '''DATE_TIME State handler function'''
     #TODO bayad tu data base save konam va ye func handler ham benvisam ta
     #job queue betune uno har ruz run kone
-    if not user_data.get('p_date_str'):
-        update.message.reply_text('date to nadaram babE',
-                reply_markup=markup_date_time)
+    if not user_data.get('p_datetime_str'):
+        update.message.reply_text('date to nadaram babaE',
+                reply_markup=markup_datetime)
         return DATE_TIME
     update.message.reply_text('add to quee ')
 
@@ -316,7 +338,7 @@ def enqeue(bot, update, user_data):
     user_data['link'] = str(user_data['link'])
     user_data['usr_name'] = str(update.message.chat.username)
     user_data['usr_id'] = str(update.message.chat.id)
-    user_data['g_date'] = user_data.get('p_date').togregorian()
+    user_data['g_date'] = user_data.get('p_datetime').togregorian()
     # database instance
     p = Post()
     p.add_entry(user_data)
@@ -412,7 +434,7 @@ TOKEN = "401217227:AAFWcAQ_lC33X9hwgnL3lYp2CdItJwhlD0o"
 updater = Updater(TOKEN)
 
 # Get the job_queue
-updater.job_queue.run_daily(callback=send_today_post, time=datetime.time(21, 10))
+updater.job_queue.run_repeating(callback=send_today_post, interval=30)
 # Get the dispatcher to register handlers
 dp = updater.dispatcher
 
