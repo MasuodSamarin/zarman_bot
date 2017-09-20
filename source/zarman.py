@@ -23,7 +23,7 @@ select bot and channel
 if zarman is True the bot uses orginal zarman Channel and bot
 else for Debug
 '''
-ZARMAN = False
+ZARMAN = True
 if not ZARMAN:
     zarman_channel_id = -1001124038908
     zarman_channel_name = "@this_is_my_channel"
