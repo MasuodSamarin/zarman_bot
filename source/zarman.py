@@ -23,7 +23,8 @@ select bot and channel
 if zarman is True the bot uses orginal zarman Channel and bot
 else for Debug
 '''
-ZARMAN = True
+ZARMAN = False
+# ZARMAN = True
 if not ZARMAN:
     zarman_channel_id = -1001124038908
     zarman_channel_name = "@this_is_my_channel"
@@ -46,6 +47,12 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 print('__name__:', __name__)
+print('''
+the kalagh is running,
+token:{0}
+Channel:{1}
+here is log:
+'''.format(TOKEN, zarman_channel_name ))
 
 
 # States of the bot
@@ -91,13 +98,6 @@ def new_message(bot, update, user_data):
     '''MAIN State handler function'''
     update.message.reply_text(f_msg_start, reply_markup=markup_newMsg)
     return NEW_MSG
-
-def query_message(bot, update, user_data):
-    '''MAIN State handler function'''
-    update.message.reply_text(' hanus kar nmikone lotfan /reset o bezan ',
-            reply_markup=markup_query)
-    return QUERY
-
 def make_post(user_data):
 
     not_print_line = '\n<a> &#8207; </a>\n'*2
@@ -152,6 +152,7 @@ def parse_message_handler(bot, update, user_data):
         text_spl = text.splitlines()
         text_final = list()
         for l in text_spl:
+            l = l.strip()
             if len(l)>0 and l[0] != '-':
                 wt = ('{0}{1}').format('\t'*10, l)
                 text_final.append(wt)
@@ -166,19 +167,29 @@ def parse_message_handler(bot, update, user_data):
     user_data['hashtag'] = hashtag
 
     if user_data.get('text'):
+        if len(user_data['text']) > 4096:
+            update.message.reply_text(text='bishtar az 4096ch dadi',
+                    reply_markup=markup_newMsg)
+            del user_data['text']
+            return NEW_MSG
+
         text = '{0}'.format(text)
         user_data['pocket'] += text
+        user_data['pocket'] = user_data['pocket'].strip()
         update.message.reply_text(f_msg_get_text , reply_markup=markup_newMsg)
 
     if user_data.get('link'):
         for l in link:
             p = '<a href="{0}" > &#8207; </a>'.format(l)
             user_data['pocket'] += p
+            user_data['pocket'] = user_data['pocket'].strip()
         update.message.reply_text(f_msg_get_link , reply_markup=markup_newMsg)
 
     if user_data.get('hashtag'):
         hashtg = '\n{0}\n'.format((' '.join(hashtag)).strip())
+        hashtg = '\n{0}'.format(hashtg)
         user_data['pocket'] += hashtg
+        user_data['pocket'] = user_data['pocket']
         update.message.reply_text(f_msg_get_hashtg , reply_markup=markup_newMsg)
 
 
@@ -248,6 +259,7 @@ def reset(bot, update, user_data):
            ' /start obezan')
 
     user_data.clear()
+    del user_data
     return ConversationHandler.END
 
 def Preview(bot, update, user_data):
@@ -363,6 +375,13 @@ def enqeue(bot, update, user_data):
     return ConversationHandler.END
 
 
+def query_message(bot, update, user_data):
+    '''MAIN State handler function'''
+    update.message.reply_text(' hanus kar nmikone lotfan /reset o bezan ',
+            reply_markup=markup_query)
+    return QUERY
+
+
 def not_publish_messages(bot, update, user_data):
     '''QUERY State handler function'''
     update.message.reply_text('not_publish_messages query_message ',
@@ -455,7 +474,7 @@ dp.add_handler(conv_handler)
 dp.add_error_handler(error)
 
 # Start the Bot
-# updater.start_polling()
+updater.start_polling()
 
 # Run the bot until you press Ctrl-C or the process receives SIGINT,
 # SIGTERM or SIGABRT. This should be used most of the time, since
